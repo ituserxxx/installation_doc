@@ -10,7 +10,12 @@ sudo passwd root
 ```
 su root
 ```
-
+临时设置 hostname
+```
+hostnamectl set-hostname k8s-master
+hostnamectl set-hostname k8s-slave-one
+hostnamectl set-hostname k8s-slave-two
+```
 安装环境（所有节点上面执行）
 ```
 apt-get update
