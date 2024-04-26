@@ -229,7 +229,57 @@ cp /etc/kubernetes/kubelet.conf  ~/.kube/config
 kubectl get pod
 ```
 
+配置网络(flannel)
 
+查看 node 。此时 node 状态应该是 NotReady，因为还没配置网络插件（ master 节点）
 
+下载默认配置文件
+```
+wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+```
+
+修改 kube-flannel.yml，在第 200 行左右增加指定网卡的配置：
+```
+- --iface=XXX
+
+#如果机器存在多网卡的话，最好指定内网网卡的名称。CentOS 下一般是 eth0 或者 ens33 。不指定的话默认会使用第一块网卡。
+#也可以不指定，使用默认配置
+```
+
+然后改这段
+```
+net-conf.json: |
+    {
+      "Network": "33.33.0.0/16", //这里的ip需要修改
+      "Backend": {
+        "Type": "vxlan"
+      }
+    }
+
+```
+将 Network 改为 ​ kubeadm init 命令时指定的那个--pod-network-cidr=33.33.0.0/16 
+
+创建、启动 flannel
+```
+kubectl create -f kube-flannel.yml 
+kubectl apply -f kube-flannel.yml 
+​
+#再次查看 pod ，coredns 的状态是否变为变为 Running
+
+kubectl get pods -n kube-system
+
+# 如果有报错：卸载重新安装
+# 使用 kubectl delete 命令删除之前创建的资源对象。在这种情况下，运行以下命令：
+
+kubectl delete -f kube-flannel.yml
+
+等待资源对象删除成功后，可以再次运行 kubectl apply 命令来重新创建资源对象。使用以下命令：
+
+kubectl apply -f kube-flannel.yml
+```
+![image](https://github.com/ituserxxx/installation_doc/assets/66945660/449fc65e-1b31-4a8f-8f26-f5656c68d430)
+
+![image](https://github.com/ituserxxx/installation_doc/assets/66945660/b0eeb34d-8145-4ecc-9f85-01e0182daf6a)
 
 
