@@ -191,7 +191,3 @@ kubectl get nodes
 
 
 
-
-
-
-
