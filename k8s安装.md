@@ -32,7 +32,7 @@ sh -c 'cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
 deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
 EOF'
 
-apt-get update
+apt-get update -y
 
 # 这步会有点慢，稍等一下
 apt-get install -y docker.io kubelet kubeadm kubectl
@@ -85,6 +85,16 @@ vim /etc/containerd/config.toml
 sandbox_image = "registry.aliyuncs.com/google_containers/pause:3.9" 
 ```
 
+编辑 /etc/crictl.yaml 文件，输入以下内容
+```
+runtime-endpoint: unix:///var/run/containerd/containerd.sock
+image-endpoint: unix:///var/run/containerd/containerd.sock
+timeout: 10
+#debug: true
+debug: false
+pull-image-on-create: false
+```
+
 重启 containerd 
 ```
 systemctl restart containerd
@@ -111,7 +121,7 @@ kubeadm reset
 初始化 kubeadme 之后有如下输出
 ![image](https://github.com/ituserxxx/installation_doc/assets/66945660/7810c511-2af3-4038-b3cc-a65b9cce0aa1)
 
-<b>先保存图中的 3 那2行命令，在子节点加入集群的时候需要用<b>
+**先保存图中的 3 那2行命令，在子节点加入集群的时候需要用**
 
 根据提示执行 1 或者 2 命令
 - 命令 1 如果当前用户是非root用户执行
@@ -121,7 +131,7 @@ kubeadm reset
 
 从节点加入集群（在所有从节点操作）
 
-从节点执行加入集群命令使用的是上面初始化成功后提示的命令3（执行这个命令一定要一行执行，不要像提示的那样分行了）
+从节点执行加入集群命令使用的是上面初始化成功后提示的命令3（**执行这个命令一定要一行执行，不要像提示的那样分行了**）
 ```
 kubeadm join 10.206.0.15:6443 --token blhkgv.5q05s2mbhon7mv7m  --discovery-token-ca-cert-hash sha256:b6dd53da9115cc56fe668cae809dc30eb74d2d221e155c0f9a1094704ddef111
 ```
@@ -150,7 +160,7 @@ kubeadm reset
 
 (慎用)如果以上操作都不生效，可以试试关闭主、从节点防火墙或者打开主节点 6443 端口解决
 
-- 关闭防火墙：ufw ufw disable
+- 关闭防火墙：ufw disable
 - ufw allow 8080
 
 加入成功后有如下提示
@@ -167,8 +177,15 @@ kubectl get nodes
 kubectl get nodes
 ```
 显示如下
+
 ![image](https://github.com/ituserxxx/installation_doc/assets/66945660/1ac8238a-e9f1-4db8-8b9a-f10cd36246fd)
 解决
+
+```
+mkdir ~/.kube
+cp /etc/kubernetes/kubelet.conf  ~/.kube/config
+kubectl get pod
+```
 
 
 
