@@ -39,6 +39,24 @@ sed -i '/swap/d' /etc/fstab
  ufw allow from 10.206.0.0/16   (内网 slave 网段)
 ``` 
 
+配置Ubuntu软件源 
+```
+vi /etc/apt/sources.list
+```
+最后增加内容
+```
+deb http://mirrors.aliyun.com/ubuntu/ focal main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ focal-security main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ focal-updates main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ focal-proposed main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ focal-backports main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ focal main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ focal-security main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ focal-updates main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ focal-proposed main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ focal-backports main restricted universe multiverse
+```
+
 安装k8s环境（所有节点上面执行）
 ```
 apt-get update -y
@@ -49,16 +67,22 @@ mkdir -p /etc/apt/keyrings
 
 curl -fsSL https://dl.k8s.io/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
 
+curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
+
 apt-get update -y
 
 echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
 
 # 从这里开始，下面的步骤单独执行，不要全部复制一起执行
-sh -c 'curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -'
 
-sh -c 'cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
+
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
 deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
-EOF'
+EOF
+
+
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /etc/apt/trusted.gpg.d/kubernetes-archive-keyring.gpg add -
 
 apt-get update -y
 
@@ -69,25 +93,7 @@ kubeadm config images pull  --image-repository registry.aliyuncs.com/google_cont
 ```
 
 
-初始化 kubeadm （master 节点执行）
-```
-# kubeadm init 是用于初始化创建一个新的 Kubernetes 集群的命令
-# --pod-network-cidr=33.33.0.0/16 指定了 Pod 网络的 CIDR 地址段为 33.33.0.0/16。这个地址段用来分配给 Kubernetes 中的 Pod 网络，以便于不同 Pod 之间的通信和网络隔离。
-# --apiserver-advertise-address 参数一定要用master节点的内网ip
-
-kubeadm init --apiserver-advertise-address 10.206.0.15 --pod-network-cidr=33.33.0.0/16 --image-repository registry.aliyuncs.com/google_containers
-```
-执行完 kubeadm init 后 报错1
-![image](https://github.com/ituserxxx/installation_doc/assets/66945660/2a9dcc13-a0a0-4ecb-b820-2d823c622178)
-解决1
-查看 kubelet 状态
-```
-systemctl status kubelet
-```
-![image](https://github.com/ituserxxx/installation_doc/assets/66945660/dfa0efdc-8c56-44a8-bcc1-f397f25f1b44)
-发现状态正常，但是各组件报错
-
-重新生成配置文件
+生成配置文件
 ```
 mkdir -p /etc/containerd
 containerd config default >  /etc/containerd/config.toml
@@ -107,7 +113,7 @@ sandbox_image = "registry.aliyuncs.com/google_containers/pause:3.9"
 ```
 runtime-endpoint: unix:///var/run/containerd/containerd.sock
 image-endpoint: unix:///var/run/containerd/containerd.sock
-timeout: 10
+timeout: 0
 debug: false
 pull-image-on-create: false
 ```
@@ -128,15 +134,28 @@ pause_threshold = 0.02
 sandbox_image = "registry.aliyuncs.com/google_containers/pause:3.9"
 ```
 
-重置 kubeadm
+初始化 kubeadm （master 节点执行）
 ```
-kubeadm reset 
-# 输入 y
+# kubeadm init 是用于初始化创建一个新的 Kubernetes 集群的命令
+# --pod-network-cidr=33.33.0.0/16 指定了 Pod 网络的 CIDR 地址段为 33.33.0.0/16。这个地址段用来分配给 Kubernetes 中的 Pod 网络，以便于不同 Pod 之间的通信和网络隔离。
+# --apiserver-advertise-address 参数一定要用master节点的内网ip
+
+kubeadm init --apiserver-advertise-address 10.206.0.15 --pod-network-cidr=33.33.0.0/16 --image-repository registry.aliyuncs.com/google_containers
 ```
-再执行初始化 kubeadm 初始化步骤
+如果执行完 kubeadm init 后 报错1
+![image](https://github.com/ituserxxx/installation_doc/assets/66945660/2a9dcc13-a0a0-4ecb-b820-2d823c622178)
+解决1
+查看 kubelet 状态
+```
+systemctl status kubelet
+```
+![image](https://github.com/ituserxxx/installation_doc/assets/66945660/dfa0efdc-8c56-44a8-bcc1-f397f25f1b44)
+发现状态正常，但是各组件报错
+
 
 初始化 kubeadme 之后有如下输出
 ![image](https://github.com/ituserxxx/installation_doc/assets/66945660/7810c511-2af3-4038-b3cc-a65b9cce0aa1)
+
 
 **先保存图中的 3 那2行命令，在子节点加入集群的时候需要用**
 
@@ -144,10 +163,21 @@ kubeadm reset
 - 命令 1 如果当前用户是非root用户执行
 - 命令 2 当前用户是root用户执行（我这只需要执行2）
 
+查看安装是否成功
+```
+kubectl get pods -n kube-system
+```
+
 到这里面为止，主节点已经安装完成，接下来是从节点
+
 
 从节点加入集群（在所有从节点操作）
 
+
+检测是否可加入
+```
+nc -zv 10.206.0.6 6443   （主节点内网ip）
+```
 从节点执行加入集群命令使用的是上面初始化成功后提示的命令3（**执行这个命令一定要一行执行，不要像提示的那样分行了**）
 ```
 kubeadm join 10.206.0.15:6443 --token blhkgv.5q05s2mbhon7mv7m  --discovery-token-ca-cert-hash sha256:b6dd53da9115cc56fe668cae809dc30eb74d2d221e155c0f9a1094704ddef111
@@ -174,11 +204,6 @@ kubeadm reset
 ```
 再重新加入集群，执行上面的 kubeadm join 命令
 
-
-(慎用)如果以上操作都不生效，可以试试关闭主、从节点防火墙或者打开主节点 6443 端口解决
-
-- 关闭防火墙：ufw disable
-- ufw allow 8080
 
 加入成功后有如下提示
 ![image](https://github.com/ituserxxx/installation_doc/assets/66945660/7b3966c2-8212-4280-bc3a-e4b2aca93a22)
