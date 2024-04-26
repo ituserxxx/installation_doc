@@ -1,4 +1,25 @@
 
+
+调试用    
+```
+#查看组件状态
+kubectl get pods -n kube-system
+
+# 查看服务日志
+journalctl -f -u kubelet.service
+
+# 查看节点
+kubectl get nodes
+
+#打印加入命令
+kubeadm token create --print-join-command
+```
+
+
+
+
+
+
 腾讯云 3台 2h4G ubuntu 2204 版服务器，按量计费，用完即毁
 
 设置 root 密码
