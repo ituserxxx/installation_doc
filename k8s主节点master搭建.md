@@ -46,10 +46,15 @@ deb-src http://mirrors.aliyun.com/ubuntu/ focal-backports main restricted univer
 ```
 
 安装k8s环境
+
 ```
+缺少阿里云 Kubernetes 软件源的公钥。您可以尝试手动添加该公钥以解决此问题。
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B53DC80D13EDEF05
+
 apt-get update -y
 
 apt-get install -y ca-certificates curl gnupg apt-transport-https
+
 
 mkdir -p /etc/apt/keyrings
 
