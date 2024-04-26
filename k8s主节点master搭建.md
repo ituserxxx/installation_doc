@@ -81,6 +81,9 @@ apt-get update -y
 # 这步会有点慢，稍等一下
 apt-get install -y docker.io kubelet kubeadm kubectl
 
+# 禁止这些组件自动更新
+apt-mark hold kubelet kubeadm kubectl
+
 kubeadm config images pull  --image-repository registry.aliyuncs.com/google_containers
 ```
 
