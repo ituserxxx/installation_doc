@@ -12,13 +12,36 @@ su root
 ```
 临时设置 hostname
 ```
-hostnamectl set-hostname k8s-master
-hostnamectl set-hostname k8s-slave-one
-hostnamectl set-hostname k8s-slave-two
+hostnamectl set-hostname k8s-master  && bash
+hostnamectl set-hostname k8s-slave-one  && bash
+hostnamectl set-hostname k8s-slave-two  && bash
 ```
 安装环境（所有节点上面执行）
+
+使用 swapoff 命令关闭当前正在使用的 swap 分区 （主、从节点操作）
 ```
-apt-get update
+# 临时关闭
+swapoff -a
+# 永久关闭
+sed -i '/swap/d' /etc/fstab
+```
+注释掉 /etc/fstab 文件中关于 swap 分区的条目 （主、从节点操作）
+```
+找到类似 UUID=<swap_partition_uuid> swap swap defaults 0 0 的行，并在行首添加 # 注释掉它。
+```
+![image](https://github.com/ituserxxx/installation_doc/assets/66945660/d33e2363-b28a-4c47-999c-3dc0ab41ade9)
+
+
+关闭防火墙：ufw disable
+
+针对特定的内网地址范围开放所有端口
+```
+ ufw allow from 10.206.0.0/16   (内网 slave 网段)
+``` 
+
+安装k8s环境（所有节点上面执行）
+```
+apt-get update -y
 
 apt-get install -y ca-certificates curl gnupg apt-transport-https
 
@@ -26,7 +49,7 @@ mkdir -p /etc/apt/keyrings
 
 curl -fsSL https://dl.k8s.io/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
 
-apt-get update
+apt-get update -y
 
 echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
 
@@ -44,16 +67,6 @@ apt-get install -y docker.io kubelet kubeadm kubectl
 
 kubeadm config images pull  --image-repository registry.aliyuncs.com/google_containers
 ```
-
-使用 swapoff 命令关闭当前正在使用的 swap 分区 （主、从节点操作）
-```
-swapoff -a
-```
-注释掉 /etc/fstab 文件中关于 swap 分区的条目 （主、从节点操作）
-```
-找到类似 UUID=<swap_partition_uuid> swap swap defaults 0 0 的行，并在行首添加 # 注释掉它。
-```
-![image](https://github.com/ituserxxx/installation_doc/assets/66945660/d33e2363-b28a-4c47-999c-3dc0ab41ade9)
 
 
 初始化 kubeadm （master 节点执行）
@@ -95,7 +108,6 @@ sandbox_image = "registry.aliyuncs.com/google_containers/pause:3.9"
 runtime-endpoint: unix:///var/run/containerd/containerd.sock
 image-endpoint: unix:///var/run/containerd/containerd.sock
 timeout: 10
-#debug: true
 debug: false
 pull-image-on-create: false
 ```
